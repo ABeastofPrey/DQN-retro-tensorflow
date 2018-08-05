@@ -49,3 +49,4 @@ def train(sess):
 
 def eval(sess):
     print('testing')
+    agent = Agent(sess, False)

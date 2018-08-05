@@ -34,9 +34,10 @@ BATCH_SIZE = 200
 LOG_PATH = 'logs'
 
 class Agent(object):
-    def __init__(self, sess):
+    def __init__(self, sess, is_train=True):
         self.sess = sess
         self.memory = deque()
+        self.is_train = is_train
 
         self.observations = tf.placeholder(name='observations', shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS], dtype=tf.float32)
         self.actions = tf.placeholder(name='actions', shape=[None, ACTION_SPACE], dtype=tf.float32)
@@ -100,7 +101,8 @@ class Agent(object):
         with tf.name_scope('train_op'):
             self.train = tf.train.AdamOptimizer(LEARN_RATE).minimize(loss)
         
-        tf.global_variables_initializer().run()
+        if sefl.is_train:
+            tf.global_variables_initializer().run()
 
         self.merged = tf.summary.merge_all()
         self.writer = tf.summary.FileWriter(LOG_PATH, self.sess.graph)
