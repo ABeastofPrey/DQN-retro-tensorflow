@@ -101,7 +101,7 @@ class Agent(object):
         with tf.name_scope('train_op'):
             self.train = tf.train.AdamOptimizer(LEARN_RATE).minimize(loss)
         
-        if sefl.is_train:
+        if self.is_train:
             tf.global_variables_initializer().run()
 
         self.merged = tf.summary.merge_all()
@@ -122,7 +122,7 @@ class Agent(object):
         self.memory.append((observation, action, reward, next_observation, terminal))
         if len(self.memory) > MEMORY_SIZE: self.memory.popleft()
     
-    def learn(self):
+    def learn(self, step):
         batch_count = BATCH_SIZE
         if BATCH_SIZE > len(self.memory):
             batch_count = len(self.memory)
@@ -152,7 +152,7 @@ class Agent(object):
             self.actions: action_batch,
             self.q_target: t_value_batch
         })
-        self.writer.add_summary(rs, 1)
+        self.writer.add_summary(rs, step)
 
     def variable_summaries(self, var):
         """对一个张量添加多个描述。
@@ -182,4 +182,4 @@ class Agent(object):
             self.store_transition(observation, action, reward, observation_, done)
             observation = observation_
             if i % 5 == 0:
-                self.learn()
+                self.learn(i)
