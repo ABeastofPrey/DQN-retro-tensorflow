@@ -26,26 +26,34 @@ def test_env():
         env.render()
         step += 1
         if step > 1000:
+            print("live steps: ", step)
             env.close()
             break
 
 def train(sess):
     # test_env()
+
     agent = Agent(sess)
-    agent.test()
-    # step = 0
-    # for episode in range(TRAINING_STEPS):
-    #     observation = env.reset()
-    #     while True:
-    #         action = agent.epsilon_action(observation[np.newaxis,:])
-    #         next_observation, reward, done, info = env.step(action)
-    #         agent.store_transition(observation, action, reward, next_observation)
-    #         if (step > 200) and (step % 5 == 0):
-    #             agent.learn()
-    #         observation = next_observation
-    #         step += 1
-    #         if done: break
-    # env.close()
+    # agent.test(env)
+    step = 0
+    for episode in range(TRAINING_STEPS):
+        print(rest env at episode: ', episode)
+        observation = env.reset()
+        while True:
+            action = agent.epsilon_action(observation)
+            next_observation, reward, done, info = env.step(action)
+            agent.store_transition(observation, action, reward, next_observation, done)
+            if (step > 200) and (step % 20 == 0):
+                print("step: %s, episode: %s, learning..."%(step, episode))
+                agent.learn(step)
+            if (step > 0) and (step % 500 == 0):
+                agent.save_model()
+            observation = next_observation
+            step += 1
+            if done: 
+                print('done')
+                break
+    env.close()
 
 def eval(sess):
     print('testing')

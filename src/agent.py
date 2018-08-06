@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 import tensorflow as tf
@@ -26,18 +27,25 @@ ACTION_SPACE = 12
 
 GAMMA = 0.99
 EPSILON = 0.8
-LEARN_RATE = 0.01
+LEARN_RATE = 0.001
 
 MEMORY_SIZE = 500
 BATCH_SIZE = 200
 
 LOG_PATH = 'logs'
+# 模型的存储路径和文件名
+MODEL_PATH = "models"
+MODEL_NAME = "model.ckpt"
 
 class Agent(object):
     def __init__(self, sess, is_train=True):
         self.sess = sess
         self.memory = deque()
         self.is_train = is_train
+        # 定义存储训练论数的变量。
+        # 这个变量不需要计算滑动平均值，所以这里指定这个变量为不可训练的变量（trainable=False）。
+        # 在使用tensorflow训练神经网络时，一般会将代表训练轮数的参数指定为不可训练的参数。
+        self.global_step = tf.Variable(0, trainable=False)
 
         self.observations = tf.placeholder(name='observations', shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS], dtype=tf.float32)
         self.actions = tf.placeholder(name='actions', shape=[None, ACTION_SPACE], dtype=tf.float32)
@@ -67,7 +75,6 @@ class Agent(object):
             biases = tf.get_variable(name='biases', shape=[CONV3_DEEP], initializer=tf.constant_initializer(0.0))
             # self.variable_summaries(filter)
             # self.variable_summaries(biases)
-            tf.summary.histogram('bias', biases)
             conv = tf.nn.conv2d(name='conv', input=relu2, filter=filter, strides=[1, 1, 1, 1], padding='SAME')
             relu3 = tf.nn.relu(tf.nn.bias_add(conv, biases))
                 
@@ -99,19 +106,25 @@ class Agent(object):
             tf.summary.scalar('loss',loss)
 
         with tf.name_scope('train_op'):
-            self.train = tf.train.AdamOptimizer(LEARN_RATE).minimize(loss)
-        
-        if self.is_train:
-            tf.global_variables_initializer().run()
+            self.train = tf.train.AdamOptimizer(LEARN_RATE).minimize(loss, global_step=self.global_step)
 
         self.merged = tf.summary.merge_all()
+        self.saver = tf.train.Saver()
         self.writer = tf.summary.FileWriter(LOG_PATH, self.sess.graph)
-            
+
+        # tf.train.get_checkpoint_state函数会通过checkpoint文件自动找到目录中最新模型的文件名。
+        ckpt = tf.train.get_checkpoint_state(MODEL_PATH)
+        if ckpt and ckpt.model_checkpoint_path:
+            self.saver.restore(self.sess, ckpt.model_checkpoint_path)
+            print("Successfully loaded:", ckpt.model_checkpoint_path)
+        else:
+            tf.global_variables_initializer().run()
+            print("Could not find old network weights")
     
     def epsilon_action(self, observation):
         action = np.zeros(ACTION_SPACE)
         if random.random() < EPSILON:
-            q_value = self.logit.eval(feed_dict={self.observations: observation})
+            q_value = self.logit.eval(feed_dict={self.observations: observation[np.newaxis,:]})
             index = np.argmax(q_value[0])
         else:
             index = random.randrange(ACTION_SPACE)
@@ -141,18 +154,19 @@ class Agent(object):
             else:
                 t_value_batch.append(reward_batch[i] + GAMMA * np.max(q_value_batch[i]))
 
-        # self.train.run(feed_dict={
-        #     self.observations: cu_obs_batch,
-        #     self.actions: action_batch,
-        #     self.q_target: t_value_batch
-        # })
-
         _, rs = self.sess.run([self.train, self.merged], feed_dict={
             self.observations: cu_obs_batch,
             self.actions: action_batch,
             self.q_target: t_value_batch
         })
         self.writer.add_summary(rs, step)
+
+    def save_model(self):
+        print('save model after train steps: ', self.sess.run(self.global_step))
+        # 保存当前的模型。
+        # 这里给出了global_step参数，这样可以让每个被保存模型的文件名末尾加上训练的轮数。
+        # 比如"model.ckpt-1000"表示1000轮训练之后得到的模型。
+        self.saver.save(self.sess, os.path.join(MODEL_PATH, MODEL_NAME), global_step=self.global_step)
 
     def variable_summaries(self, var):
         """对一个张量添加多个描述。
@@ -162,24 +176,41 @@ class Agent(object):
         """
         
         with tf.name_scope('summaries'):
-            mean = tf.reduce_mean(var)
-            tf.summary.scalar('mean', mean) # 均值
-            with tf.name_scope('stddev'):
-                stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-            tf.summary.scalar('stddev', stddev) # 标准差
-            tf.summary.scalar('max', tf.reduce_max(var)) # 最大值
-            tf.summary.scalar('min', tf.reduce_min(var)) # 最小值
+            # mean = tf.reduce_mean(var)
+            # tf.summary.scalar('mean', mean) # 均值
+            # with tf.name_scope('stddev'):
+            #     stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+            # tf.summary.scalar('stddev', stddev) # 标准差
+            # tf.summary.scalar('max', tf.reduce_max(var)) # 最大值
+            # tf.summary.scalar('min', tf.reduce_min(var)) # 最小值
             tf.summary.histogram('histogram', var)
 
-    def test(self):
-        observation = np.random.random((IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)) 
-        for i in range(100):
-            print(i)
-            action = self.epsilon_action(observation[np.newaxis,:])
-            observation_ = np.random.random((IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)) 
-            done = random.choice([True, False])
-            reward = random.random()
-            self.store_transition(observation, action, reward, observation_, done)
-            observation = observation_
-            if i % 5 == 0:
-                self.learn(i)
+    def test(self, env):
+        step = 0
+        for episode in range(100):
+            print('*******episode: ', episode)
+            # observation = env.reset()
+            observation = np.random.random((IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)) 
+            while True:
+                # action = agent.epsilon_action(observation)
+                action = self.epsilon_action(observation)
+                # next_observation, reward, done, info = env.step(action)
+
+                next_observation = np.random.random((IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)) 
+                done = random.choice([True, False])
+                reward = random.random()
+
+                # agent.store_transition(observation, action, reward, next_observation, done)
+                self.store_transition(observation, action, reward, next_observation, done)
+                if (step > 100) and (step % 20 == 0):
+                    print("step: %s, ep: %s "%(step, episode))
+                    # agent.learn(step)
+                    self.learn(step)
+                if (step > 0) and (step % 100 == 0): # step should be 500
+                    self.save_model()
+
+                observation = next_observation
+                step += 1
+                if done: 
+                    print('done and break')
+                    break
