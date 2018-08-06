@@ -1,5 +1,5 @@
 import tensorflow as tf
-from src.inference import train, eval
+from src.inference import train, eval_play
 
 #第一个是参数名称，第二个参数是默认值，第三个是参数描述
 # tf.app.flags.DEFINE_string('str_name', 'def_v_1', "descrip1")
@@ -15,7 +15,7 @@ def main(_):
         if FLAGS.train: 
             train(sess)
         else: 
-            eval(sess)
+            eval_play(sess)
 
 if __name__ == '__main__':
     tf.app.run()

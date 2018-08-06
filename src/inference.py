@@ -55,6 +55,6 @@ def train(sess):
                 break
     env.close()
 
-def eval(sess):
+def eval_play(sess):
     print('testing')
     agent = Agent(sess, False)
