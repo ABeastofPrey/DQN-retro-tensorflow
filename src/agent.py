@@ -29,7 +29,7 @@ GAMMA = 0.99
 EPSILON = 0.8
 LEARN_RATE = 0.001
 
-MEMORY_SIZE = 500
+MEMORY_SIZE = 5000
 BATCH_SIZE = 200
 
 LOG_PATH = 'logs'
@@ -45,11 +45,12 @@ class Agent(object):
         # 定义存储训练论数的变量。
         # 这个变量不需要计算滑动平均值，所以这里指定这个变量为不可训练的变量（trainable=False）。
         # 在使用tensorflow训练神经网络时，一般会将代表训练轮数的参数指定为不可训练的参数。
-        self.global_step = tf.Variable(0, trainable=False)
+        self.global_step = tf.Variable(0, trainable=False, name='global_steps')
 
-        self.observations = tf.placeholder(name='observations', shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS], dtype=tf.float32)
-        self.actions = tf.placeholder(name='actions', shape=[None, ACTION_SPACE], dtype=tf.float32)
-        self.q_target = tf.placeholder(name='q_target', shape=[None], dtype=tf.float32)
+        with tf.name_scope('input'):
+            self.observations = tf.placeholder(name='observations', shape=[None, IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS], dtype=tf.float32)
+            self.actions = tf.placeholder(name='actions', shape=[None, ACTION_SPACE], dtype=tf.float32)
+            self.q_target = tf.placeholder(name='q_target', shape=[None], dtype=tf.float32)
         
         self.build_deep_q_network()
     
@@ -99,10 +100,12 @@ class Agent(object):
                 self.variable_summaries(biases)
             self.logit = tf.matmul(fc1, weights) + biases # q_value
 
+        with tf.name_scope('cross_entropy'):
+            self.cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.logit, labels=tf.argmax(self.actions, 1)))
+
         with tf.name_scope('loss'):
-            # q_action = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logit, labels=actions))
-            q_action = tf.reduce_sum(tf.multiply(self.logit, self.actions), 1)
-            loss = tf.reduce_mean(tf.square(self.q_target - q_action))
+            # q_action = tf.reduce_sum(tf.multiply(self.logit, self.actions), 1)
+            loss = tf.reduce_mean(tf.square(self.q_target - self.cross_entropy))
             tf.summary.scalar('loss',loss)
 
         with tf.name_scope('train_op'):
@@ -128,6 +131,13 @@ class Agent(object):
             index = np.argmax(q_value[0])
         else:
             index = random.randrange(ACTION_SPACE)
+        action[index] = 1
+        return action
+
+    def greedy_action(self, observation):
+        action = np.zeros(ACTION_SPACE)
+        q_value = self.logit.eval(feed_dict={self.observations: observation[np.newaxis,:]})
+        index = np.argmax(q_value[0])
         action[index] = 1
         return action
     
