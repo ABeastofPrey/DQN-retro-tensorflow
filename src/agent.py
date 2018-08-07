@@ -105,7 +105,7 @@ class Agent(object):
 
         with tf.name_scope('loss'):
             # q_action = tf.reduce_sum(tf.multiply(self.logit, self.actions), 1)
-            loss = tf.reduce_mean(tf.square(self.q_target - self.cross_entropy))
+            loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.cross_entropy))
             tf.summary.scalar('loss',loss)
 
         with tf.name_scope('train_op'):
