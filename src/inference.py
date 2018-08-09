@@ -3,7 +3,7 @@ from .agent import Agent
 
 env = retro.make(game='Airstriker-Genesis', state='Level1')
 
-TRAINING_STEPS = 100
+TRAINING_ROUNDS = 100
 
 def test_env():
     step = 0
@@ -28,20 +28,22 @@ def train(sess):
 
     agent = Agent(sess)
     step = 0
-    for episode in range(TRAINING_STEPS):
-        print('rest env at episode: ', episode)
+    for episode in range(TRAINING_ROUNDS):
+        count = 0
+        print('rest env at steps: %s,  episode: %s'%(step, episode))
         observation = env.reset()
         while True:
             action = agent.epsilon_action(observation)
             next_observation, reward, done, info = env.step(action)
             agent.store_transition(observation, action, reward, next_observation, done)
-            if (step > 1000) and (step % 50 == 0):
+            if (count > 1200) and (step % 20 == 0):
                 print("step: %s, episode: %s, learning..."%(step, episode))
                 agent.learn(step)
-            if (step > 1000) and (step % 500 == 0):
+            if (count > 1200) and (step % 200 == 0):
                 agent.save_model()
             observation = next_observation
             step += 1
+            count += 1
             if done: break
     env.close()
 

@@ -27,7 +27,7 @@ ACTION_SPACE = 12
 
 GAMMA = 0.99
 EPSILON = 0.8
-LEARN_RATE = 0.001
+LEARN_RATE = 1e-8
 
 MEMORY_SIZE = 5000
 BATCH_SIZE = 200
@@ -172,7 +172,7 @@ class Agent(object):
         self.writer.add_summary(rs, step)
 
     def save_model(self):
-        print('save model after train steps: ', self.sess.run(self.global_step))
+        print('save model after train times: ', self.sess.run(self.global_step))
         # 保存当前的模型。
         # 这里给出了global_step参数，这样可以让每个被保存模型的文件名末尾加上训练的轮数。
         # 比如"model.ckpt-1000"表示1000轮训练之后得到的模型。
