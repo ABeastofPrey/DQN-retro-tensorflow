@@ -48,13 +48,16 @@ def train(sess):
     env.close()
 
 def eval_play(sess):
-    print('testing')
     agent = Agent(sess, False)
-    observation = env.reset()
-    while True:
-        action = agent.greedy_action(observation)
-        next_observation, reward, done, info = env.step(action)
-        if done:
-            break
-        observation = next_observation
-        env.render()
+    for episode in range(10):
+        live_steps = 0
+        observation = env.reset()
+        while True:
+            action = agent.greedy_action(observation)
+            next_observation, reward, done, info = env.step(action)
+            if done:
+                print("Live %s steps at episode %s"%(live_steps, episode))
+                break
+            observation = next_observation
+            env.render()
+            live_steps += 1
