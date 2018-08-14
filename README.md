@@ -11,7 +11,7 @@ Here is pseudo-code of Deep Q-learnig with experience replay.
 ![algorithm](assets/dqn-v1.jpg)
 
 ## Networks
-Here is the nueron network portion of DQN-v2013, it has three convolutional layers and two ful-connetion layers. The input is the original image from enviroment itself, and ouput is propability of each action of action space. 
+Here is the neuron network portion of DQN-v2013, it has three convolutional layers and two ful-connetion layers. The input is the original image from enviroment itself, and ouput is propability of each action of action space. 
 
 ![networks](assets/networks.jpg)
 
