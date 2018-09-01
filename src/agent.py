@@ -38,10 +38,10 @@ MODEL_PATH = "models"
 MODEL_NAME = "model.ckpt"
 
 class Agent(object):
-    def __init__(self, sess, is_train=True):
+    def __init__(self, sess, env):
         self.sess = sess
+        self.env = env
         self.memory = deque()
-        self.is_train = is_train
         # 定义存储训练论数的变量。
         # 这个变量不需要计算滑动平均值，所以这里指定这个变量为不可训练的变量（trainable=False）。
         # 在使用tensorflow训练神经网络时，一般会将代表训练轮数的参数指定为不可训练的参数。
@@ -145,6 +145,41 @@ class Agent(object):
         self.memory.append((observation, action, reward, next_observation, terminal))
         if len(self.memory) > MEMORY_SIZE: self.memory.popleft()
     
+    def training(self, rounds=100):
+        step = 0
+        for episode in range(rounds):
+            count = 0
+            print('rest env at steps: %s,  episode: %s'%(step, episode))
+            observation = self.env.reset()
+            while True:
+                action = self.epsilon_action(observation)
+                next_observation, reward, done, info = self.env.step(action)
+                self.store_transition(observation, action, reward, next_observation, done)
+                if (count > 1200) and (step % 20 == 0):
+                    print("step: %s, episode: %s, learning..."%(step, episode))
+                    self.learn(step)
+                if (count > 1200) and (step % 200 == 0):
+                    self.save_model()
+                observation = next_observation
+                step += 1
+                count += 1
+                if done: break
+        self.env.close()
+    
+    def eval_play(self, rounds=3):
+        for episode in range(rounds):
+            live_steps = 0
+            observation = self.env.reset()
+            while True:
+                action = self.greedy_action(observation)
+                next_observation, reward, done, info = self.env.step(action)
+                if done:
+                    print("Live %s steps at episode %s"%(live_steps, episode))
+                    break
+                observation = next_observation
+                self.env.render()
+                live_steps += 1
+
     def learn(self, step):
         batch_count = BATCH_SIZE
         if BATCH_SIZE > len(self.memory):
@@ -194,6 +229,11 @@ class Agent(object):
             # tf.summary.scalar('max', tf.reduce_max(var)) # 最大值
             # tf.summary.scalar('min', tf.reduce_min(var)) # 最小值
             tf.summary.histogram('histogram', var)
+
+    def grayed_resized_process(self, raw_input, out_shape=[80, 80]):
+        resized_image = tf.image.resize_images(ob_img, out_shape, method=tf.image.ResizeMethod.AREA)
+        grayed_resized_image = tf.image.rgb_to_grayscale(resized_image)
+        return grayed_resized_image
 
     def test(self, env):
         step = 0
