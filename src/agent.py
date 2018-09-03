@@ -20,9 +20,13 @@ CONV3_DEEP = 64
 # 全连接节点的个数
 FC1_SIZE = 512
 
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 320
-IMAGE_CHANNELS = 3
+RAW_IMAGE_HEIGHT = 224
+RAW_IMAGE_WIDTH = 320
+RAW_IMAGE_CHANNELS = 3
+
+IMAGE_HEIGHT = 80
+IMAGE_WIDTH = 80
+IMAGE_CHANNELS = 1
 ACTION_SPACE = 12
 
 GAMMA = 0.99
@@ -150,10 +154,13 @@ class Agent(object):
         for episode in range(rounds):
             count = 0
             print('rest env at steps: %s,  episode: %s'%(step, episode))
-            observation = self.env.reset()
+            _observation = self.env.reset()
+            observation = self.grayed_resized_process(_observation)
             while True:
+                print("step: %s, episode: %s."%(step, episode))
                 action = self.epsilon_action(observation)
-                next_observation, reward, done, info = self.env.step(action)
+                _next_observation, reward, done, info = self.env.step(action)
+                next_observation = self.grayed_resized_process(_next_observation) # handle raw observation
                 self.store_transition(observation, action, reward, next_observation, done)
                 if (count > 1200) and (step % 20 == 0):
                     print("step: %s, episode: %s, learning..."%(step, episode))
@@ -169,10 +176,12 @@ class Agent(object):
     def eval_play(self, rounds=3):
         for episode in range(rounds):
             live_steps = 0
-            observation = self.env.reset()
+            _observation = self.env.reset()
+            observation = self.grayed_resized_process(_observation)
             while True:
                 action = self.greedy_action(observation)
-                next_observation, reward, done, info = self.env.step(action)
+                _next_observation, reward, done, info = self.env.step(action)
+                next_observation = self.grayed_resized_process(_next_observation)
                 if done:
                     print("Live %s steps at episode %s"%(live_steps, episode))
                     break
@@ -230,10 +239,12 @@ class Agent(object):
             # tf.summary.scalar('min', tf.reduce_min(var)) # 最小值
             tf.summary.histogram('histogram', var)
 
-    def grayed_resized_process(self, raw_input, out_shape=[80, 80]):
-        resized_image = tf.image.resize_images(ob_img, out_shape, method=tf.image.ResizeMethod.AREA)
+    def grayed_resized_process(self, raw_input, out_shape=[IMAGE_HEIGHT, IMAGE_WIDTH]):
+        resized_image = tf.image.resize_images(raw_input, out_shape, method=tf.image.ResizeMethod.AREA)
         grayed_resized_image = tf.image.rgb_to_grayscale(resized_image)
-        return grayed_resized_image
+        processed_image = self.sess.run(grayed_resized_image)
+        print(processed_image.shape)
+        return processed_image
 
     def test(self, env):
         step = 0
