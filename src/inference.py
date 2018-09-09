@@ -1,5 +1,7 @@
 import retro
 from .agent import Agent
+# [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0] => right
+# [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0] => left
 
 env = retro.make(game='Airstriker-Genesis', state='Level1')
 
@@ -23,6 +25,8 @@ def test_env():
             env.reset()
         env.render()
         step += 1
+        time.sleep(0.1)
+            
 
 def train(sess):
     # test_env()

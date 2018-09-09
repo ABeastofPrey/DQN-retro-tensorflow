@@ -31,10 +31,10 @@ IMAGE_CHANNELS = 1
 ACTION_SPACE = 12
 
 GAMMA = 0.99
-EPSILON = 0.8
+EPSILON = 0.78
 LEARN_RATE = 1e-8
 
-MEMORY_SIZE = 5000
+MEMORY_SIZE = 4000
 BATCH_SIZE = 200
 
 LOG_PATH = 'logs'
@@ -163,14 +163,15 @@ class Agent(object):
                 _next_observation, reward, done, info = self.env.step(action)
                 next_observation = self.grayed_resized_process(_next_observation) # handle raw observation
                 self.store_transition(observation, action, reward, next_observation, done)
-                if (count > 1200) and (step % 20 == 0):
+                if (count > 200) and (step % 20 == 0):
                     print("step: %s, episode: %s, learning..."%(step, episode))
                     self.learn(step)
-                if (count > 1200) and (step % 200 == 0):
+                if (count > 200) and (step % 100 == 0):
                     self.save_model()
                 observation = next_observation
                 step += 1
                 count += 1
+                self.env.render()
                 if done: break
         self.env.close()
     
@@ -241,7 +242,6 @@ class Agent(object):
             tf.summary.histogram('histogram', var)
 
     def grayed_resized_process(self, raw_input):
-        print(raw_input.shape)
         resized = cv2.resize(raw_input, (IMAGE_HEIGHT, IMAGE_WIDTH), interpolation=cv2.INTER_CUBIC)
         grayed = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
         _, thsh_img = cv2.threshold(grayed,1, 255, cv2.THRESH_BINARY)
