@@ -1,4 +1,5 @@
 import os
+import cv2
 import random
 import numpy as np
 import tensorflow as tf
@@ -239,11 +240,12 @@ class Agent(object):
             # tf.summary.scalar('min', tf.reduce_min(var)) # 最小值
             tf.summary.histogram('histogram', var)
 
-    def grayed_resized_process(self, raw_input, out_shape=[IMAGE_HEIGHT, IMAGE_WIDTH]):
-        resized_image = tf.image.resize_images(raw_input, out_shape, method=tf.image.ResizeMethod.AREA)
-        grayed_resized_image = tf.image.rgb_to_grayscale(resized_image)
-        processed_image = self.sess.run(grayed_resized_image)
-        print(processed_image.shape)
+    def grayed_resized_process(self, raw_input):
+        print(raw_input.shape)
+        resized = cv2.resize(raw_input, (IMAGE_HEIGHT, IMAGE_WIDTH), interpolation=cv2.INTER_CUBIC)
+        grayed = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+        _, thsh_img = cv2.threshold(grayed,1, 255, cv2.THRESH_BINARY)
+        processed_image = np.reshape(thsh_img, (80, 80, 1))
         return processed_image
 
     def test(self, env):

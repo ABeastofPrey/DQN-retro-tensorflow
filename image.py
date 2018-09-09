@@ -56,6 +56,7 @@ def iminfo(img):
 
 def main():
     img = cv2.imread('./assets/a-g.png')
+    # grayed_resized_process
     resized = cv2.resize(img, (80, 80), interpolation=cv2.INTER_CUBIC)
     grayed = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
     _, thsh_img = cv2.threshold(grayed,1,255,cv2.THRESH_BINARY)
@@ -70,8 +71,8 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             # iminfo(img)
             # iminfo(resized)
-            iminfo(grayed)
-            iminfo(thsh_img)
+            # iminfo(grayed)
+            # iminfo(thsh_img)
             iminfo(observation)
             print("I'm done")
             break
